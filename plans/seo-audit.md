@@ -33,7 +33,7 @@ Inferred themes from content (no target keywords supplied): "codebase operabilit
 2. **HIGH — Add canonical URL** `<link rel="canonical" href="https://ravaniroshan.github.io/busfactor-landing-page/">` via `customScripts.headStart`.
 3. **MEDIUM — Add Open Graph image** so shared links render a preview card (`openGraph.image` + automatic `twitter:card`/`twitter:image` from the plugin).
 4. **LOW — Add `sitemap.xml`** with the single canonical URL.
-5. **LOW — Convert nav buttons to real `<a href="#id">` links** for crawlable anchors and deep linking (visual regression risk; deferred).
+5. **LOW — Convert nav buttons to real `<a href="#id">` links** — DONE. `NavLink` mirrors Astra's Button classes exactly, so all computed styles match the original buttons; hash deep-linking and browser back/forward now work. Verified: 8 anchors, all targets exist, scroll lands at the 16px `scroll-mt` offset. Note: Firecrawl still reports 0 links because it excludes same-page `#` anchors — expected for a single-page site, not a defect.
 
 ## Sources
 
