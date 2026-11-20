@@ -2,7 +2,13 @@
   "title": "BusFactor — Operability for unfamiliar codebases",
   "description": "Assess whether teammates can safely operate an unfamiliar codebase with repository scans, evidence-backed risk maps, handoff guides, and author-specific questions.",
   "robots": {
-    "index": false
+    "index": true
+  },
+  "openGraph": {
+    "image": "https://ravaniroshan.github.io/busfactor-landing-page/og-image.jpg"
+  },
+  "customScripts": {
+    "headStart": "<link rel=\"canonical\" href=\"https://ravaniroshan.github.io/busfactor-landing-page/\">"
   },
   "accessibility": {
     "addBypassLinks": false,
