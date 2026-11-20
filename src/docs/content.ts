@@ -35,13 +35,14 @@ export const docGroups: DocGroup[] = [
           {
             type: "steps",
             items: [
-              { title: "Run a scan", text: "Point BusFactor at a folder on your machine. The command prints a verdict when it finishes." },
+              { title: "Run a scan", text: "Point BusFactor at a folder on your machine. The verdict is printed to your terminal. Saving a report is optional — use --out and --format as shown in the CLI reference." },
               { title: "Read the verdict", text: "The score answers one question: could someone who didn't write this code run and change it safely?" },
               { title: "Open the risk map", text: "Find the area most likely to break during a handoff — setup, deploys, recovery, or ownership." },
-              { title: "Draft the handoff", text: "Generate OPERATE.md, then answer the questions only the original author can answer." },
+              { title: "Draft the handoff", text: "Open the drafted OPERATE.md in the report, then answer the questions only the original author can answer." },
             ],
           },
           { type: "code", code: "npx busfactor scan ./my-repo" },
+          { type: "note", tone: "info", text: "npx runs the tool without installing it. If BusFactor is installed globally, you can drop the npx prefix and type busfactor directly." },
           { type: "p", text: "To try it on a public repository instead, replace the path with its GitHub URL." },
           { type: "code", code: "npx busfactor scan https://github.com/owner/repo" },
           { type: "note", tone: "info", text: "Nothing is executed. BusFactor reads source files statically; repository code never runs." },
@@ -62,6 +63,7 @@ export const docGroups: DocGroup[] = [
           { type: "p", text: "Use --fail-under with a minimum score. The command exits with code 2 when the score is below that threshold, so a build can treat it like a failing test." },
           { type: "code", code: "busfactor scan . --format json --fail-under 70" },
           { type: "p", text: "Write Markdown for people and JSON for pipelines when you want both a readable report and a machine-readable result." },
+          { type: "note", tone: "info", text: "The score runs from 0 to 100. There is no universal pass mark — choose a bar your team can hold and raise it as the handoff improves." },
           { type: "code", code: "busfactor scan . --out ./reports --format md,json" },
           { type: "note", tone: "warn", text: "Exit code 2 means the score was missed, not that the scan failed. Reserve exit code 1 for real errors." },
         ],
@@ -80,7 +82,9 @@ export const docGroups: DocGroup[] = [
               "Author questions — what the code cannot tell you.",
             ],
           },
+          { type: "p", text: "The risk map concentrates on four areas: setup, deploys, recovery, and ownership." },
           { type: "p", text: "Every finding cites a file and line. Open the citation to verify the claim yourself instead of taking the tool's word for it." },
+          { type: "note", tone: "info", text: "OPERATE.md is the same handoff document wherever you see it — in the report, from the MCP generate_operate_md tool, or through the Claude Code skill." },
         ],
       },
       {
@@ -89,6 +93,7 @@ export const docGroups: DocGroup[] = [
         lead: "Expose scans to any MCP client so an assistant can fetch evidence on demand.",
         blocks: [
           { type: "code", code: "node packages/mcp/dist/index.js" },
+          { type: "p", text: "Run this from the BusFactor repository root after the MCP package has been built, then register the command with your MCP client." },
           { type: "p", text: "The server exposes three tools: scan_repo, get_report, and generate_operate_md." },
           { type: "list", items: ["scan_repo — run a scan against a path or URL.", "get_report — retrieve an existing report.", "generate_operate_md — draft the handoff document."] },
         ],
@@ -125,6 +130,7 @@ export const docGroups: DocGroup[] = [
             ],
           },
           { type: "p", text: "Exit codes: 0 success, 2 when --fail-under is missed, 1 on error." },
+          { type: "note", tone: "info", text: "The examples use the installed form. Prefix any command with npx to run it without a global install." },
         ],
       },
       {
@@ -155,7 +161,7 @@ export const docGroups: DocGroup[] = [
           {
             type: "list",
             items: [
-              "5,000 files or 25 MB per scan.",
+              "Up to 5,000 files or 25 MB per scan — whichever limit is reached first.",
               "Public GitHub URLs and local paths.",
               "Repository code is never executed.",
               "Source snapshots are deleted after 7 days.",
@@ -194,6 +200,7 @@ export const docGroups: DocGroup[] = [
         lead: "Some knowledge never existed in the code in the first place.",
         blocks: [
           { type: "p", text: "Why a workaround exists, which dependency is fragile, who rotates a secret — the code cannot answer these. BusFactor writes them down before the author moves on, so the answer is not lost with them." },
+          { type: "p", text: "They appear as a list in the report. Capture the answers in your team's handoff notes before the author leaves." },
         ],
       },
     ],
