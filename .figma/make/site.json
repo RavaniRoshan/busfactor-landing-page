@@ -1,0 +1,11 @@
+{
+  "title": "BusFactor — Operability for unfamiliar codebases",
+  "description": "Assess whether teammates can safely operate an unfamiliar codebase with repository scans, evidence-backed risk maps, handoff guides, and author-specific questions.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

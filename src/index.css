@@ -1,0 +1,119 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..600&display=swap");
+@import "@figma/astraui/styles.css";
+/* Tailwind loads after Astra's precompiled CSS so page utilities and their
+   responsive variants win the cascade over identical base utilities. */
+@import "tailwindcss";
+
+/*
+ * Map the Astra design-system variables into Tailwind's theme so every utility
+ * (including responsive variants) reads from the design-system CSS. Change a
+ * variable in the design-system stylesheet and the whole page follows.
+ */
+@theme inline {
+  /* Keep Tailwind's font utilities on the design-system typeface. */
+  --font-sans: var(--font-display);
+
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-tertiary: var(--brand-tertiary);
+  --color-brand-muted: var(--brand-muted);
+  --color-surface-bg: var(--surface-bg);
+  --color-surface-secondary-bg: var(--surface-secondary-bg);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-dark: var(--surface-dark);
+  --color-surface-darkest: var(--surface-darkest);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-selected: var(--border-selected);
+  --color-bg-faint: var(--bg-faint);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-hover: var(--bg-hover);
+  --color-input-bg: var(--input-bg);
+  --color-on-brand: var(--on-brand);
+  --color-on-reverse: var(--on-reverse);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-modal-scrim: var(--modal-scrim);
+
+  --spacing-xs: var(--space-xs);
+  --spacing-sm: var(--space-sm);
+  --spacing-md: var(--space-md);
+  --spacing-lg: var(--space-lg);
+  --spacing-xl: var(--space-xl);
+  --spacing-2xl: var(--space-2xl);
+  /* Landing-page rhythm, derived from the largest DS spacing step. */
+  --spacing-3xl: calc(var(--space-2xl) * 2);
+  --spacing-4xl: calc(var(--space-2xl) * 3);
+  --spacing-section: calc(var(--space-2xl) * 5);
+  --spacing-visual: calc(var(--space-2xl) * 7);
+  --spacing-footer: calc(var(--space-2xl) * 14);
+  --spacing-report: calc(var(--space-2xl) * 22);
+
+  --radius-corner-sm: var(--corner-sm);
+  --radius-corner-md: var(--corner-md);
+  --radius-corner-lg: var(--corner-lg);
+  --radius-corner-full: var(--corner-full);
+
+  --container-copy: calc(var(--space-2xl) * 24);
+  --container-article: calc(var(--space-2xl) * 28);
+  --container-page: calc(var(--space-2xl) * 46);
+  --container-window: calc(var(--space-2xl) * 48);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--brand-tertiary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--brand-secondary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* Editorial display sizes for the landing page, scaled from the DS base font size. */
+@layer components {
+  .type-hero {
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-medium);
+    font-size: calc(var(--font-size) * 2.25);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+
+    @variant md {
+      font-size: calc(var(--font-size) * 3.25);
+    }
+  }
+
+  .type-display {
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-medium);
+    font-size: calc(var(--font-size) * 1.75);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+
+    @variant md {
+      font-size: calc(var(--font-size) * 2.25);
+    }
+  }
+}
