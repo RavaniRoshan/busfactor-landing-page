@@ -291,9 +291,30 @@ function Cite({ children }: { children: ReactNode }) {
   );
 }
 
-function scrollToSection(id: string) {
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  document.getElementById(id)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+/*
+ * Real anchor links for section navigation. The class string mirrors Astra's
+ * Button `variant="subtle" size="small"` exactly (including its `<span
+ * class="shrink-0">` wrapper), so swapping the nav buttons for anchors adds
+ * crawlable `href="#..."` links and deep-linking with zero visual change.
+ * Smooth scrolling and reduced-motion behaviour come from the CSS on `html`.
+ */
+const navLinkBase =
+  "inline-flex items-center justify-center gap-2 rounded-full font-sans transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary cursor-pointer hover:cursor-pointer bg-transparent border-none disabled:opacity-40 disabled:pointer-events-none h-8 p-2 text-xs";
+
+function NavLink({
+  id,
+  label,
+  className = "",
+}: {
+  id: string;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <a href={`#${id}`} className={`${navLinkBase} ${className}`}>
+      <span className="shrink-0">{label}</span>
+    </a>
+  );
 }
 
 function ThemeToggle() {
@@ -680,15 +701,12 @@ function SiteHeader() {
       <div className="flex items-center gap-xs">
         <nav aria-label="Page sections" className="hidden items-center gap-xs sm:flex">
           {navItems.map((item) => (
-            <Button
+            <NavLink
               key={item.id}
-              variant="subtle"
-              size="small"
+              id={item.id}
+              label={item.label}
               className="text-text-primary hover:text-text-secondary"
-              onClick={() => scrollToSection(item.id)}
-            >
-              {item.label}
-            </Button>
+            />
           ))}
         </nav>
         <ThemeToggle />
@@ -1568,15 +1586,12 @@ function SiteFooter() {
           <Logo className="text-on-brand" />
           <div className="flex flex-wrap items-center gap-xs">
             {navItems.map((item) => (
-              <Button
+              <NavLink
                 key={item.id}
-                variant="subtle"
-                size="small"
-                className="text-on-brand"
-                onClick={() => scrollToSection(item.id)}
-              >
-                {item.label}
-              </Button>
+                id={item.id}
+                label={item.label}
+                className="text-on-brand hover:text-brand-secondary"
+              />
             ))}
             <span className="px-md text-label-sm text-on-brand">License TBD</span>
           </div>
