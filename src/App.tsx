@@ -46,6 +46,7 @@ import duskRoad from "./assets/dusk-road.webp";
 import { gsap } from "./animations/gsap";
 import { useMotionGsap } from "./animations/useMotionGsap";
 import { usePageAnimations } from "./animations/usePageAnimations";
+import DocsPage from "./docs/DocsPage";
 
 const LOCAL_COMMAND = "npx busfactor scan ./my-repo";
 const GITHUB_COMMAND = "npx busfactor scan https://github.com/owner/repo";
@@ -304,14 +305,16 @@ const navLinkBase =
 function NavLink({
   id,
   label,
+  href,
   className = "",
 }: {
   id: string;
   label: string;
+  href?: string;
   className?: string;
 }) {
   return (
-    <a href={`#${id}`} className={`${navLinkBase} ${className}`}>
+    <a href={href ?? `#${id}`} className={`${navLinkBase} ${className}`}>
       <span className="shrink-0">{label}</span>
     </a>
   );
@@ -684,11 +687,14 @@ function ReportWindow() {
 /* Page sections                                                       */
 /* ------------------------------------------------------------------ */
 
-const navItems = [
+const DOCS_URL = "?page=docs";
+
+const navItems: { label: string; id: string; href?: string }[] = [
   { label: "Quickstart", id: "quickstart" },
   { label: "CLI", id: "cli" },
   { label: "Limits", id: "limits" },
   { label: "FAQ", id: "faq" },
+  { label: "Docs", id: "docs", href: DOCS_URL },
 ];
 
 function SiteHeader() {
@@ -705,6 +711,7 @@ function SiteHeader() {
               key={item.id}
               id={item.id}
               label={item.label}
+              href={item.href}
               className="text-text-primary hover:text-text-secondary"
             />
           ))}
@@ -1590,6 +1597,7 @@ function SiteFooter() {
                 key={item.id}
                 id={item.id}
                 label={item.label}
+                href={item.href}
                 className="text-on-brand hover:text-brand-secondary"
               />
             ))}
@@ -1604,6 +1612,24 @@ function SiteFooter() {
 export default function App() {
   const rootRef = useRef<HTMLDivElement>(null);
   usePageAnimations(rootRef);
+
+  // The docs are a view inside this same app — one entry, one build, one deploy.
+  // A plain query string keeps back/forward and deep links working without a router.
+  const isDocs = new URLSearchParams(window.location.search).get("page") === "docs";
+
+  useEffect(() => {
+    document.title = isDocs
+      ? "BusFactor Documentation"
+      : "BusFactor — Operability for unfamiliar codebases";
+  }, [isDocs]);
+
+  if (isDocs) {
+    return (
+      <div ref={rootRef}>
+        <DocsPage />
+      </div>
+    );
+  }
 
   return (
     <ClipboardProvider>
