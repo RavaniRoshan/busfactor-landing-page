@@ -22,6 +22,11 @@ export function usePageAnimations(rootRef: RefObject<HTMLElement | null>) {
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const q = gsap.utils.selector(rootRef);
 
+        // The docs view shares this React root but has none of the landing
+        // page's `data-anim` markers. Without this guard GSAP would warn about
+        // dozens of empty targets on every docs render.
+        if (q('[data-anim="hero-title"]').length === 0) return;
+
         /* ---------------------------------------------------------------- */
         /* Reveal helpers                                                    */
         /* ---------------------------------------------------------------- */
