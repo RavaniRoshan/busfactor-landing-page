@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Badge, Button } from "@figma/astraui";
 import { Check, Copy } from "lucide-react";
-import { buildAppLink } from "../lib/app-links";
-import { track } from "../lib/analytics";
+import { AppLink } from "../components/AppLink";
 import { docGroups, type DocBlock, type DocSection } from "./content";
 
 // The docs are a view inside the same app, so `./` always resolves back to the
@@ -241,13 +240,15 @@ export default function DocsPage() {
               Everything you need to run a scan and understand the result. Pick a tutorial to get
               started, or use the reference when you need an exact flag or limit.
             </p>
-            <a
-              href={buildAppLink({ path: "/scan", search: window.location.search, base: APP_URL })}
+            <AppLink
+              path="/scan"
+              base={APP_URL}
+              event="scanner_cta_clicked"
+              eventProperties={{ location: "docs_intro" }}
               className="mt-lg inline-flex text-label-sm font-medium text-brand-primary hover:text-text-primary"
-              onClick={() => track("scanner_cta_clicked", { location: "docs_intro" })}
             >
               Open the hosted scanner
-            </a>
+            </AppLink>
           </div>
 
           {docGroups.map((group) => (

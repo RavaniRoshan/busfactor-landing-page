@@ -146,12 +146,14 @@ function CopyButton({
   variant = "neutral",
   size = "small",
   className,
+  trackEvent,
 }: {
   text: string;
   children: ReactNode;
   variant?: "primary" | "neutral" | "subtle";
   size?: "medium" | "small";
   className?: string;
+  trackEvent?: "cli_command_copied";
 }) {
   const { copied, copy } = useContext(ClipboardContext);
   const isCopied = copied === text;
@@ -164,7 +166,7 @@ function CopyButton({
       iconStart={isCopied ? <Check size={16} /> : <Copy size={16} />}
       onClick={async () => {
         const ok = await copy(text);
-        if (ok) track("cli_command_copied", { command: "scan" });
+        if (ok && trackEvent) track(trackEvent, { command: "scan" });
       }}
       aria-label={`Copy ${text}`}
     >
@@ -798,7 +800,12 @@ function Hero() {
         >
           Scan your repository
         </a>
-        <CopyButton text={LOCAL_COMMAND} variant="neutral" size="medium">
+        <CopyButton
+          text={LOCAL_COMMAND}
+          variant="neutral"
+          size="medium"
+          trackEvent="cli_command_copied"
+        >
           Copy CLI command
         </CopyButton>
       </div>
@@ -1209,7 +1216,12 @@ function QuickCommand({ command }: { command: string }) {
       <p className="text-label-sm text-text-secondary">
         Up to 5,000 files or 25 MB per scan. No repository code is executed.
       </p>
-      <CopyButton text={command} variant="primary" size="medium">
+      <CopyButton
+        text={command}
+        variant="primary"
+        size="medium"
+        trackEvent={command === LOCAL_COMMAND || command === GITHUB_COMMAND ? "cli_command_copied" : undefined}
+      >
         Copy command
       </CopyButton>
     </div>
@@ -1382,6 +1394,7 @@ function Integrations() {
                     text={item.snippet}
                     variant="subtle"
                     className="text-text-primary hover:text-text-secondary"
+                    trackEvent={item.snippet === LOCAL_COMMAND ? "cli_command_copied" : undefined}
                   >
                     {item.copyLabel}
                   </CopyButton>

@@ -17,6 +17,7 @@ const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "ut
 
 let initialized = false;
 let landingViewed = false;
+let disabled = false;
 
 function getEnv(key: string): string | undefined {
   const value = (import.meta.env as Record<string, string | undefined>)[key];
@@ -80,24 +81,31 @@ function baseProperties(): Record<string, string> {
 export function initMarketingAnalytics(): void {
   const key = getPosthogKey();
   if (!key) return;
+  if (disabled) return;
   if (getMarketingConsent() !== "granted") return;
   if (typeof window === "undefined") return;
 
-  if (!initialized) {
-    posthog.init(key, {
-      api_host: getEnv("VITE_POSTHOG_HOST") || "https://us.i.posthog.com",
-      autocapture: false,
-      capture_pageview: false,
-      disable_session_recording: true,
-      person_profiles: "identified_only",
-      persistence: "localStorage+cookie",
-    });
-    initialized = true;
-  }
+  try {
+    if (!initialized) {
+      posthog.init(key, {
+        api_host: getEnv("VITE_POSTHOG_HOST") || "https://us.i.posthog.com",
+        autocapture: false,
+        capture_pageview: false,
+        disable_session_recording: true,
+        person_profiles: "identified_only",
+        persistence: "localStorage+cookie",
+      });
+      initialized = true;
+    }
 
-  if (!landingViewed) {
-    landingViewed = true;
-    posthog.capture("landing_viewed", baseProperties());
+    if (!landingViewed) {
+      landingViewed = true;
+      posthog.capture("landing_viewed", baseProperties());
+    }
+  } catch {
+    disabled = true;
+    initialized = false;
+    landingViewed = false;
   }
 }
 
@@ -107,19 +115,24 @@ export function track(
 ): void {
   const key = getPosthogKey();
   if (!key) return;
+  if (disabled) return;
   if (getMarketingConsent() !== "granted") return;
   if (!initialized) return;
 
-  const sanitized: Record<string, string | number | boolean> = {};
-  for (const [name, value] of Object.entries(properties)) {
-    if (value === null || value === undefined) continue;
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      sanitized[name] = value;
+  try {
+    const sanitized: Record<string, string | number | boolean> = {};
+    for (const [name, value] of Object.entries(properties)) {
+      if (value === null || value === undefined) continue;
+      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        sanitized[name] = value;
+      }
     }
-  }
 
-  posthog.capture(event, {
-    ...baseProperties(),
-    ...sanitized,
-  });
+    posthog.capture(event, {
+      ...baseProperties(),
+      ...sanitized,
+    });
+  } catch {
+    disabled = true;
+  }
 }
