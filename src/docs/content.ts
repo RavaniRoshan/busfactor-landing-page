@@ -32,6 +32,7 @@ export const docGroups: DocGroup[] = [
         lead: "A short lesson: take a codebase you know nothing about and find out whether you could safely operate it.",
         blocks: [
           { type: "p", text: "You need Node.js installed. No account, signup, or API key is required for a local folder or a public GitHub repository." },
+          { type: "p", text: "Hosted scan: submit a public GitHub URL in the browser. CLI: scan local paths or GitHub URLs from your terminal. BusFactor is not published on npm; use npx from the project instructions or run the CLI from source as documented." },
           {
             type: "steps",
             items: [
@@ -43,9 +44,9 @@ export const docGroups: DocGroup[] = [
           },
           { type: "code", code: "npx busfactor scan ./my-repo" },
           { type: "note", tone: "info", text: "npx runs the tool without installing it. If BusFactor is installed globally, you can drop the npx prefix and type busfactor directly." },
-          { type: "p", text: "To try it on a public repository instead, replace the path with its GitHub URL." },
+          { type: "p", text: "To try it on a public repository instead, replace the path with its GitHub URL. The CLI accepts local paths and GitHub URLs; the hosted scanner accepts public GitHub URLs only." },
           { type: "code", code: "npx busfactor scan https://github.com/owner/repo" },
-          { type: "note", tone: "info", text: "Nothing is executed. BusFactor reads source files statically; repository code never runs." },
+          { type: "note", tone: "info", text: "Nothing is executed. BusFactor reads source files statically; repository code never runs. Hosted scans download a temporary snapshot and never execute it." },
         ],
       },
     ],
@@ -130,7 +131,7 @@ export const docGroups: DocGroup[] = [
             ],
           },
           { type: "p", text: "Exit codes: 0 success, 2 when --fail-under is missed, 1 on error." },
-          { type: "note", tone: "info", text: "The examples use the installed form. Prefix any command with npx to run it without a global install." },
+          { type: "note", tone: "info", text: "BusFactor is not published on npm. Use the CLI from source or the command form documented by the project; the hosted scanner is the easiest way to scan a public GitHub repository." },
         ],
       },
       {
@@ -162,8 +163,8 @@ export const docGroups: DocGroup[] = [
             type: "list",
             items: [
               "Up to 5,000 files or 25 MB per scan — whichever limit is reached first.",
-              "Public GitHub URLs and local paths.",
-              "Repository code is never executed.",
+              "Hosted scan: public GitHub URLs only. CLI: local paths and GitHub URLs.",
+              "Repository code is never executed. Hosted scans download a temporary snapshot and never execute it.",
               "Source snapshots are deleted after 7 days.",
             ],
           },

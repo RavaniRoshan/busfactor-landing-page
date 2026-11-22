@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@figma/astraui": "1.0.0",
@@ -15,6 +17,7 @@
     "@gsap/react": "^2.1.2",
     "gsap": "^3.15.1",
     "lucide-react": "0.487.0",
+    "posthog-js": "^1.453.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -27,7 +30,8 @@
     "oxfmt": "^0.76.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
-    "vite": "^8.1.7"
+    "vite": "^8.1.7",
+    "vitest": "^5.1.1"
   },
   "figma": {
     "kitAttachments": {

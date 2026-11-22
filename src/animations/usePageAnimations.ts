@@ -109,6 +109,10 @@ export function usePageAnimations(rootRef: RefObject<HTMLElement | null>) {
         revealList('[data-anim="limits-list"]', '[data-anim="limit"]', { stagger: 0.07 });
         revealEach('[data-anim="limits-note"]', { y: 16, start: "top 90%" });
         revealList('[data-anim="faq-list"]', '[data-anim="faq-item"]', { y: 20, stagger: 0.05 });
+        revealList('[data-anim="after-scan-list"]', '[data-anim="after-scan-item"]', {
+          y: 24,
+          stagger: 0.08,
+        });
 
         revealEach('[data-anim="quickstart-panel"]', { y: 24, start: "top 85%" });
 
