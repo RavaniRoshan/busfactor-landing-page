@@ -1,5 +1,3 @@
-import posthog from "posthog-js";
-
 export const CONSENT_KEY = "busfactor.analytics.consent.v1";
 
 export type MarketingConsent = "granted" | "denied" | "unset";
@@ -14,18 +12,33 @@ export type MarketingEvent =
   | "campaign_clicked";
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
+const CLIENT_ID_KEY = "busfactor.analytics.id.v1";
+const SESSION_ID_KEY = "busfactor.analytics.session.v1";
+const DEFAULT_APP_URL = "https://heir-weld.vercel.app";
 
 let initialized = false;
 let landingViewed = false;
 let disabled = false;
+let fallbackClientId: string | null = null;
+let fallbackSessionId: string | null = null;
 
 function getEnv(key: string): string | undefined {
   const value = (import.meta.env as Record<string, string | undefined>)[key];
   return value && value.trim() ? value.trim() : undefined;
 }
 
-export function getPosthogKey(): string | undefined {
-  return getEnv("VITE_POSTHOG_KEY");
+function getAppUrl(): string {
+  return (getEnv("VITE_APP_URL") || DEFAULT_APP_URL).replace(/\/+$/, "");
+}
+
+export function getAnalyticsEndpoint(): string | undefined {
+  const configured = getEnv("VITE_ANALYTICS_ENDPOINT");
+  if (configured) return configured.replace(/\/+$/, "");
+  return `${getAppUrl()}/api/events`;
+}
+
+export function hasAnalyticsEndpoint(): boolean {
+  return Boolean(getAnalyticsEndpoint());
 }
 
 export function getMarketingConsent(): MarketingConsent {
@@ -48,6 +61,47 @@ export function setMarketingConsent(value: Exclude<MarketingConsent, "unset">): 
   }
 }
 
+function randomId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function readId(storage: Storage, key: string, fallback: () => string): string {
+  try {
+    const existing = storage.getItem(key);
+    if (existing !== null && existing.trim() !== "") return existing;
+    const created = fallback();
+    storage.setItem(key, created);
+    return created;
+  } catch {
+    return fallback();
+  }
+}
+
+function getClientId(): string {
+  if (typeof window === "undefined") {
+    fallbackClientId ??= randomId();
+    return fallbackClientId;
+  }
+  return readId(window.localStorage, CLIENT_ID_KEY, () => {
+    fallbackClientId ??= randomId();
+    return fallbackClientId;
+  });
+}
+
+function getSessionId(): string {
+  if (typeof window === "undefined") {
+    fallbackSessionId ??= randomId();
+    return fallbackSessionId;
+  }
+  return readId(window.sessionStorage, SESSION_ID_KEY, () => {
+    fallbackSessionId ??= randomId();
+    return fallbackSessionId;
+  });
+}
+
 function getDeviceType(): "mobile" | "desktop" {
   if (typeof window === "undefined") return "desktop";
   return window.matchMedia("(max-width: 767px)").matches ? "mobile" : "desktop";
@@ -64,48 +118,54 @@ function getAttribution(): Record<string, string> {
   const attribution: Record<string, string> = {};
   for (const key of UTM_KEYS) {
     const value = params.get(key);
-    if (value) attribution[key] = value;
+    if (!value) continue;
+    attribution[key.replace(/^utm_/, "")] = value;
   }
   return attribution;
 }
 
 function baseProperties(): Record<string, string> {
   return {
-    surface: "marketing",
     page: getPage(),
     device_type: getDeviceType(),
     ...getAttribution(),
   };
 }
 
-export function initMarketingAnalytics(): void {
-  const key = getPosthogKey();
-  if (!key) return;
-  if (disabled) return;
-  if (getMarketingConsent() !== "granted") return;
-  if (typeof window === "undefined") return;
-
+function send(event: MarketingEvent, properties: Record<string, string | number | boolean>): void {
+  const endpoint = getAnalyticsEndpoint();
+  if (!endpoint || disabled) return;
   try {
-    if (!initialized) {
-      posthog.init(key, {
-        api_host: getEnv("VITE_POSTHOG_HOST") || "https://us.i.posthog.com",
-        autocapture: false,
-        capture_pageview: false,
-        disable_session_recording: true,
-        person_profiles: "identified_only",
-        persistence: "localStorage+cookie",
-      });
-      initialized = true;
-    }
-
-    if (!landingViewed) {
-      landingViewed = true;
-      posthog.capture("landing_viewed", baseProperties());
-    }
+    void fetch(endpoint, {
+      method: "POST",
+      mode: "cors",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        event,
+        surface: "marketing",
+        distinct_id: getClientId(),
+        session_id: getSessionId(),
+        properties,
+      }),
+      keepalive: true,
+    }).catch(() => undefined);
   } catch {
     disabled = true;
-    initialized = false;
-    landingViewed = false;
+  }
+}
+
+export function initMarketingAnalytics(): void {
+  if (typeof window === "undefined") return;
+  if (disabled) return;
+  if (getMarketingConsent() !== "granted") return;
+  if (!hasAnalyticsEndpoint()) return;
+  if (!initialized) {
+    initialized = true;
+    window.dispatchEvent(new Event("busfactor:analytics-ready"));
+  }
+  if (!landingViewed) {
+    landingViewed = true;
+    send("landing_viewed", baseProperties());
   }
 }
 
@@ -113,26 +173,24 @@ export function track(
   event: MarketingEvent,
   properties: Record<string, string | number | boolean | null | undefined> = {},
 ): void {
-  const key = getPosthogKey();
-  if (!key) return;
   if (disabled) return;
   if (getMarketingConsent() !== "granted") return;
   if (!initialized) return;
 
-  try {
-    const sanitized: Record<string, string | number | boolean> = {};
-    for (const [name, value] of Object.entries(properties)) {
-      if (value === null || value === undefined) continue;
-      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-        sanitized[name] = value;
-      }
+  const sanitized: Record<string, string | number | boolean> = {};
+  for (const [name, value] of Object.entries(properties)) {
+    if (value === null || value === undefined) continue;
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      sanitized[name] = value;
     }
-
-    posthog.capture(event, {
-      ...baseProperties(),
-      ...sanitized,
-    });
-  } catch {
-    disabled = true;
   }
+  send(event, { ...baseProperties(), ...sanitized });
+}
+
+export function __resetMarketingAnalyticsForTests(): void {
+  initialized = false;
+  landingViewed = false;
+  disabled = false;
+  fallbackClientId = null;
+  fallbackSessionId = null;
 }

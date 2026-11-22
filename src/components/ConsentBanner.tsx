@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@figma/astraui";
 import {
   getMarketingConsent,
-  getPosthogKey,
+  hasAnalyticsEndpoint,
   initMarketingAnalytics,
   setMarketingConsent,
   type MarketingConsent,
@@ -10,7 +10,7 @@ import {
 
 export function ConsentBanner() {
   const [consent, setConsent] = useState<MarketingConsent>("unset");
-  const hasKey = Boolean(getPosthogKey());
+  const hasKey = hasAnalyticsEndpoint();
 
   useEffect(() => {
     const current = getMarketingConsent();
@@ -31,8 +31,8 @@ export function ConsentBanner() {
     >
       <div className="mx-auto flex w-full max-w-page flex-col gap-md md:flex-row md:items-center md:justify-between">
         <p className="max-w-copy text-label-sm text-text-secondary">
-          We use privacy-conscious analytics to understand which marketing pages help people find
-          BusFactor. No repository content, URLs, paths, emails, or secrets are sent.
+          BusFactor stores privacy-friendly analytics events in its own database to understand which
+          marketing pages help people find it. No repository content, URLs, paths, emails, or secrets are sent.
         </p>
         <div className="flex shrink-0 items-center gap-sm">
           <Button
