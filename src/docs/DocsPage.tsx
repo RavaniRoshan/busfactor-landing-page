@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Badge, Button } from "@figma/astraui";
 import { Check, Copy } from "lucide-react";
+import { AppLink } from "../components/AppLink";
 import { docGroups, type DocBlock, type DocSection } from "./content";
 
 // The docs are a view inside the same app, so `./` always resolves back to the
 // landing page without depending on the deploy base path.
 const HOME = "./";
+const APP_URL = import.meta.env.VITE_APP_URL || "https://heir-weld.vercel.app";
 
 function BusFactorMark() {
   return (
@@ -238,6 +240,15 @@ export default function DocsPage() {
               Everything you need to run a scan and understand the result. Pick a tutorial to get
               started, or use the reference when you need an exact flag or limit.
             </p>
+            <AppLink
+              path="/scan"
+              base={APP_URL}
+              event="scanner_cta_clicked"
+              eventProperties={{ location: "docs_intro" }}
+              className="mt-lg inline-flex text-label-sm font-medium text-brand-primary hover:text-text-primary"
+            >
+              Open the hosted scanner
+            </AppLink>
           </div>
 
           {docGroups.map((group) => (

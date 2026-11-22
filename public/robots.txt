@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ravaniroshan.github.io/busfactor-landing-page/sitemap.xml

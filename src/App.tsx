@@ -35,6 +35,7 @@ import {
   Map as MapIcon,
   Moon,
   Plug,
+  ShieldCheck,
   Sparkles,
   Sun,
   Terminal,
@@ -46,6 +47,11 @@ import duskRoad from "./assets/dusk-road.webp";
 import { gsap } from "./animations/gsap";
 import { useMotionGsap } from "./animations/useMotionGsap";
 import { usePageAnimations } from "./animations/usePageAnimations";
+import { AppLink } from "./components/AppLink";
+import { ConsentBanner } from "./components/ConsentBanner";
+import { ViewTracker } from "./components/ViewTracker";
+import { initMarketingAnalytics, track } from "./lib/analytics";
+import { buildAppLink } from "./lib/app-links";
 import DocsPage from "./docs/DocsPage";
 
 const LOCAL_COMMAND = "npx busfactor scan ./my-repo";
@@ -53,6 +59,9 @@ const GITHUB_COMMAND = "npx busfactor scan https://github.com/owner/repo";
 const CLI_COMMAND = "busfactor scan <path|url> --out <dir> --format md,json --fail-under <score>";
 const MCP_COMMAND = "node packages/mcp/dist/index.js";
 const SKILL_PATH = "skills/handoff/SKILL.md";
+const APP_URL = import.meta.env.VITE_APP_URL || "https://heir-weld.vercel.app";
+const DEMO_REPORT_URL = import.meta.env.VITE_DEMO_REPORT_URL?.trim() || "";
+const DEMO_REPORT_LABEL = import.meta.env.VITE_DEMO_REPORT_LABEL?.trim() || "View demo report";
 
 type Icon = ComponentType<LucideProps>;
 
@@ -62,10 +71,13 @@ type Icon = ComponentType<LucideProps>;
 
 type ClipboardState = {
   copied: string | null;
-  copy: (text: string) => void;
+  copy: (text: string) => Promise<boolean>;
 };
 
-const ClipboardContext = createContext<ClipboardState>({ copied: null, copy: () => {} });
+const ClipboardContext = createContext<ClipboardState>({
+  copied: null,
+  copy: async () => false,
+});
 
 function ClipboardProvider({ children }: { children: ReactNode }) {
   const [copied, setCopied] = useState<string | null>(null);
@@ -78,7 +90,7 @@ function ClipboardProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const copy = useCallback(async (text: string) => {
+  const copy = useCallback(async (text: string): Promise<boolean> => {
     let ok = false;
     if (navigator.clipboard?.writeText) {
       try {
@@ -115,6 +127,7 @@ function ClipboardProvider({ children }: { children: ReactNode }) {
       setCopied(null);
       setMessage("");
     }, 2000);
+    return ok;
   }, []);
 
   return (
@@ -133,12 +146,14 @@ function CopyButton({
   variant = "neutral",
   size = "small",
   className,
+  trackEvent,
 }: {
   text: string;
   children: ReactNode;
   variant?: "primary" | "neutral" | "subtle";
   size?: "medium" | "small";
   className?: string;
+  trackEvent?: "cli_command_copied";
 }) {
   const { copied, copy } = useContext(ClipboardContext);
   const isCopied = copied === text;
@@ -149,7 +164,10 @@ function CopyButton({
       size={size}
       className={className}
       iconStart={isCopied ? <Check size={16} /> : <Copy size={16} />}
-      onClick={() => copy(text)}
+      onClick={async () => {
+        const ok = await copy(text);
+        if (ok && trackEvent) track(trackEvent, { command: "scan" });
+      }}
       aria-label={`Copy ${text}`}
     >
       {isCopied ? "Copied" : children}
@@ -307,14 +325,16 @@ function NavLink({
   label,
   href,
   className = "",
+  onClick,
 }: {
   id: string;
   label: string;
   href?: string;
   className?: string;
+  onClick?: () => void;
 }) {
   return (
-    <a href={href ?? `#${id}`} className={`${navLinkBase} ${className}`}>
+    <a href={href ?? `#${id}`} className={`${navLinkBase} ${className}`} onClick={onClick}>
       <span className="shrink-0">{label}</span>
     </a>
   );
@@ -705,7 +725,7 @@ function SiteHeader() {
     >
       <Logo />
       <div className="flex items-center gap-xs">
-        <nav aria-label="Page sections" className="hidden items-center gap-xs sm:flex">
+        <nav aria-label="Page sections" className="hidden items-center gap-xs lg:flex">
           {navItems.map((item) => (
             <NavLink
               key={item.id}
@@ -713,9 +733,18 @@ function SiteHeader() {
               label={item.label}
               href={item.href}
               className="text-text-primary hover:text-text-secondary"
+              onClick={item.href === DOCS_URL ? () => track("docs_clicked", { location: "header" }) : undefined}
             />
           ))}
         </nav>
+        <AppLink
+          path="/scan"
+          base={APP_URL}
+          event="scanner_cta_clicked"
+          className={`${navLinkBase} bg-brand-primary text-on-brand hover:bg-brand-primary-hover`}
+        >
+          <span className="shrink-0">Scan</span>
+        </AppLink>
         <ThemeToggle />
       </div>
     </header>
@@ -723,6 +752,12 @@ function SiteHeader() {
 }
 
 function Hero() {
+  const scanHref = buildAppLink({
+    path: "/scan",
+    search: typeof window !== "undefined" ? window.location.search : "",
+    base: APP_URL,
+  });
+
   return (
     <section
       aria-labelledby="hero-title"
@@ -748,14 +783,38 @@ function Hero() {
         BusFactor scans a repository and returns an operability verdict, a risk map, an OPERATE.md,
         and questions only the original author can answer. Every claim cites a file and line.
       </p>
-      <div data-anim="hero-cta" className="mt-2xl flex flex-col items-center gap-md">
-        <CopyButton text={LOCAL_COMMAND} variant="primary" size="medium">
-          <span className="font-mono">{LOCAL_COMMAND}</span>
+      <div data-anim="hero-cta" className="mt-2xl flex flex-col items-center gap-md sm:flex-row sm:justify-center">
+        <a
+          href={scanHref}
+          className="inline-flex h-10 items-center justify-center rounded-full bg-brand-primary px-xl font-sans text-label font-medium text-on-brand transition-colors hover:bg-brand-primary-hover focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2"
+          onClick={() => {
+            track("hero_cta_clicked", { location: "hero_primary" });
+            track("scanner_cta_clicked", { location: "hero_primary" });
+            if (typeof window !== "undefined") {
+              const params = new URLSearchParams(window.location.search);
+              if (params.get("utm_source") || params.get("utm_campaign")) {
+                track("campaign_clicked", { target_path: "/scan", location: "hero_primary" });
+              }
+            }
+          }}
+        >
+          Scan your repository
+        </a>
+        <CopyButton
+          text={LOCAL_COMMAND}
+          variant="neutral"
+          size="medium"
+          trackEvent="cli_command_copied"
+        >
+          Copy CLI command
         </CopyButton>
-        <p data-anim="hero-note" className="text-video-title text-text-secondary">
-          Local paths or public GitHub URLs. No repository code is executed.
-        </p>
       </div>
+      <p data-anim="hero-note" className="mt-lg text-video-title text-text-secondary">
+        Free hosted scan for public GitHub repositories. No signup. Nothing is executed.
+      </p>
+      <code className="mt-sm rounded-corner-sm bg-bg-faint px-md py-xs font-mono text-label-sm text-text-secondary">
+        {LOCAL_COMMAND}
+      </code>
     </section>
   );
 }
@@ -1157,7 +1216,12 @@ function QuickCommand({ command }: { command: string }) {
       <p className="text-label-sm text-text-secondary">
         Up to 5,000 files or 25 MB per scan. No repository code is executed.
       </p>
-      <CopyButton text={command} variant="primary" size="medium">
+      <CopyButton
+        text={command}
+        variant="primary"
+        size="medium"
+        trackEvent={command === LOCAL_COMMAND || command === GITHUB_COMMAND ? "cli_command_copied" : undefined}
+      >
         Copy command
       </CopyButton>
     </div>
@@ -1330,6 +1394,7 @@ function Integrations() {
                     text={item.snippet}
                     variant="subtle"
                     className="text-text-primary hover:text-text-secondary"
+                    trackEvent={item.snippet === LOCAL_COMMAND ? "cli_command_copied" : undefined}
                   >
                     {item.copyLabel}
                   </CopyButton>
@@ -1456,6 +1521,137 @@ function Limits() {
   );
 }
 
+function AfterScan() {
+  const steps = [
+    {
+      title: "Submit a public GitHub URL",
+      text: "Paste a repository URL into the hosted scanner. No signup required.",
+    },
+    {
+      title: "We scan a temporary snapshot",
+      text: "BusFactor downloads a temporary snapshot and never executes repository code.",
+    },
+    {
+      title: "Get a cited report",
+      text: "You get a verdict, risk map, OPERATE.md, and author questions with citations.",
+    },
+    {
+      title: "Share or follow up",
+      text: "Download, share, or send feedback. Use the CLI or docs for deeper workflows.",
+    },
+  ];
+
+  return (
+    <Section id="after-scan" labelledBy="after-scan-title">
+      <SectionHeader
+        id="after-scan-title"
+        badge="How it works"
+        title="After a scan"
+        text="From a public GitHub URL to a cited operability report."
+      />
+      <ol
+        data-anim="after-scan-list"
+        className="mx-auto mt-3xl grid max-w-window gap-xl sm:grid-cols-2 lg:grid-cols-4"
+      >
+        {steps.map((step, index) => (
+          <li
+            key={step.title}
+            data-anim="after-scan-item"
+            className="flex flex-col gap-md rounded-corner-lg border border-border-secondary bg-surface-secondary-bg p-xl"
+          >
+            <span className="inline-flex size-8 items-center justify-center rounded-corner-full bg-brand-primary font-mono text-label-sm text-on-brand">
+              {index + 1}
+            </span>
+            <p className="text-label font-medium text-text-primary">{step.title}</p>
+            <p className="text-label-sm text-text-secondary">{step.text}</p>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-xl flex justify-center">
+        <AppLink
+          path="/docs"
+          base={APP_URL}
+          className="text-label-sm font-medium text-brand-primary hover:text-text-primary"
+        >
+          Read the app docs
+        </AppLink>
+      </div>
+    </Section>
+  );
+}
+
+function FreeBeta() {
+  return (
+    <ViewTracker event="pricing_viewed">
+      <Section id="pricing" labelledBy="pricing-title">
+        <SectionHeader
+          id="pricing-title"
+          badge="Beta"
+          title="Free while in beta"
+          text="Scan public repositories now. We’ll be clear about what’s free and how data is handled."
+        />
+        <div className="mx-auto mt-3xl grid max-w-article gap-xl md:grid-cols-2">
+          <div className="rounded-corner-lg border border-border-secondary bg-surface-secondary-bg p-xl">
+            <div className="flex items-center gap-sm text-text-primary">
+              <ShieldCheck size={18} strokeWidth={1.5} />
+              <p className="text-label font-medium">What’s free</p>
+            </div>
+            <ul className="mt-lg flex flex-col gap-sm text-label-sm text-text-secondary">
+              <li>Hosted public-repo scans</li>
+              <li>Standard reports</li>
+              <li>CLI</li>
+              <li>MCP server</li>
+              <li>Claude Code skill</li>
+            </ul>
+          </div>
+          <div className="rounded-corner-lg border border-border-secondary bg-surface-secondary-bg p-xl">
+            <div className="flex items-center gap-sm text-text-primary">
+              <Lock size={18} strokeWidth={1.5} />
+              <p className="text-label font-medium">Data handling</p>
+            </div>
+            <p className="mt-lg text-label-sm text-text-secondary">
+              BusFactor reads repository files statically. Hosted scans download a temporary snapshot
+              and never execute repository code. See our privacy and removal pages for details.
+            </p>
+            <div className="mt-lg flex flex-wrap gap-md text-label-sm">
+              <AppLink path="/privacy" base={APP_URL} className="text-brand-primary hover:text-text-primary">
+                Privacy
+              </AppLink>
+              <AppLink path="/removal" base={APP_URL} className="text-brand-primary hover:text-text-primary">
+                Removal
+              </AppLink>
+            </div>
+          </div>
+        </div>
+      </Section>
+    </ViewTracker>
+  );
+}
+
+function DemoReport() {
+  if (!DEMO_REPORT_URL) return null;
+  return (
+    <Section id="demo-report" labelledBy="demo-report-title">
+      <SectionHeader
+        id="demo-report-title"
+        badge="Demo"
+        title="Consented demo repository report"
+        text="See what a BusFactor report looks like for a repository whose maintainers consented to share it."
+      />
+      <div className="mt-2xl flex justify-center">
+        <a
+          href={DEMO_REPORT_URL}
+          className="inline-flex items-center justify-center rounded-full bg-brand-primary px-xl py-sm font-sans text-label font-medium text-on-brand transition-colors hover:bg-brand-primary-hover focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          {DEMO_REPORT_LABEL}
+        </a>
+      </div>
+    </Section>
+  );
+}
+
 const faqs: { icon: Icon; question: string; answer: string }[] = [
   {
     icon: FileText,
@@ -1575,6 +1771,14 @@ function Faq() {
 }
 
 function SiteFooter() {
+  const footerLinks = [
+    { label: "Scan", path: "/scan", event: "scanner_cta_clicked" as const },
+    { label: "Docs", path: "/docs", event: "docs_clicked" as const },
+    { label: "Privacy", path: "/privacy" },
+    { label: "Terms", path: "/terms" },
+    { label: "Removal", path: "/removal" },
+  ];
+
   return (
     <footer data-anim="footer" className="relative isolate mt-4xl overflow-hidden md:mt-section">
       <img
@@ -1592,14 +1796,16 @@ function SiteFooter() {
         <div className="flex flex-col gap-lg sm:flex-row sm:items-center sm:justify-between">
           <Logo className="text-on-brand" />
           <div className="flex flex-wrap items-center gap-xs">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.id}
-                id={item.id}
-                label={item.label}
-                href={item.href}
-                className="text-on-brand hover:text-brand-secondary"
-              />
+            {footerLinks.map((item) => (
+              <AppLink
+                key={item.label}
+                path={item.path}
+                base={APP_URL}
+                event={item.event}
+                className={`${navLinkBase} text-on-brand hover:text-brand-secondary`}
+              >
+                <span className="shrink-0">{item.label}</span>
+              </AppLink>
             ))}
             <span className="px-md text-label-sm text-on-brand">License TBD</span>
           </div>
@@ -1623,6 +1829,10 @@ export default function App() {
       : "BusFactor — Operability for unfamiliar codebases";
   }, [isDocs]);
 
+  useEffect(() => {
+    initMarketingAnalytics();
+  }, []);
+
   if (isDocs) {
     return (
       <div ref={rootRef}>
@@ -1640,13 +1850,17 @@ export default function App() {
           <Showcase />
           <Features />
           <Highlights />
+          <AfterScan />
           <Quickstart />
           <Integrations />
           <CliReference />
           <Limits />
+          <FreeBeta />
+          <DemoReport />
           <Faq />
         </main>
         <SiteFooter />
+        <ConsentBanner />
       </div>
     </ClipboardProvider>
   );
